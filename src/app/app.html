@@ -1,0 +1,32 @@
+<button (click)="data.count += 1">+1</button>
+<p>{{ data.count }}</p>
+<p>{{ countX2() }}</p>
+
+<hr />
+<button (click)="deleteKey()">Delete key</button>
+<button (click)="addKey()">Add key</button>
+<p>
+  {{ data.myKey | json }}
+</p>
+<p>
+  {{ hasMyKey() }}
+</p>
+<p>
+  {{ objectOwnKeys() | json }}
+</p>
+
+<hr />
+<button (click)="data.inner.number += 1">Increment inner</button>
+<p>{{ data.inner.number }}</p>
+<p>{{ innerCountX2() }}</p>
+
+<hr />
+<button (click)="outsideCounter.set(outsideCounter() + 1)">Increment outside</button>
+<p>{{ outsideCounter() }}</p>
+<p>{{ data.inner.outsideCount }}</p>
+
+<hr />
+<button (click)="otherData.incrementOtherData()">Increment otherData</button>
+<p>{{ otherData.otherCount }}</p>
+
+<router-outlet />
