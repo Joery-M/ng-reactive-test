@@ -1,17 +1,7 @@
+import { isSignal, isWritableSignal, type Signal } from '@angular/core';
 import {
-  type Signal,
-  WritableSignal,
-  afterNextRender,
-  isSignal,
-  isWritableSignal,
-  signal,
-} from '@angular/core';
-import {
-  consumerDestroy,
   producerAccessed,
-  producerNotifyConsumers,
   runPostProducerCreatedFn,
-  runPostSignalSetFn,
   SIGNAL_NODE,
   signalSetFn,
   type SignalNode,

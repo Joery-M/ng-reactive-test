@@ -26,7 +26,15 @@
 <p>{{ data.inner.outsideCount }}</p>
 
 <hr />
-<button (click)="otherData.incrementOtherData()">Increment otherData</button>
+<p>Reactive reference to <code>outsideCounter</code>: {{ data.inner.numberOutside }}</p>
+
+<hr />
+<button (click)="otherData.otherCount += 1">Increment otherData</button>
 <p>{{ otherData.otherCount }}</p>
+
+<hr />
+<button (click)="otherData.incrementOtherData()">
+  Call <code>otherData.incrementOtherData()</code>
+</button>
 
 <router-outlet />
