@@ -1,31 +1,30 @@
 import { isSignal, isWritableSignal, type Signal } from '@angular/core';
 import {
   producerAccessed,
+  producerIncrementEpoch,
+  producerNotifyConsumers,
+  REACTIVE_NODE,
   runPostProducerCreatedFn,
-  SIGNAL_NODE,
-  signalSetFn,
-  type SignalNode,
+  type ReactiveNode,
 } from '@angular/core/primitives/signals';
 
-const targetMap = new WeakMap<object, Map<any, SignalNode<any>>>();
+const targetMap = new WeakMap<object, Map<any, ReactiveNode>>();
 
-function track(target: object, key: string | symbol, value?: any) {
+function createNode(target: object, key: string | symbol) {
   let nodeMap = targetMap.get(target);
   if (!nodeMap) {
     targetMap.set(target, (nodeMap = new Map()));
   }
-  const node = nodeMap.get(key);
-  if (!node) {
-    console.log('Creating new node for key', key);
-    const node: SignalNode<any> = Object.create(SIGNAL_NODE);
+  const existingNode = nodeMap.get(key);
+  if (existingNode) return existingNode;
+
+  const node: ReactiveNode = Object.create(REACTIVE_NODE);
+  if (typeof ngDevMode !== 'undefined' && ngDevMode) {
     node.debugName = String(key);
-    node.value = value;
-    nodeMap.set(key, node);
-    runPostProducerCreatedFn(node);
-    return node;
-  } else {
-    return node;
   }
+  nodeMap.set(key, node);
+  runPostProducerCreatedFn(node);
+  return node;
 }
 
 const isSymbol = (val: unknown): val is symbol => typeof val === 'symbol';
@@ -62,7 +61,7 @@ class ReactiveHandler<T extends object> implements ProxyHandler<T> {
       return res;
     }
 
-    const node = track(target, key, res);
+    const node = createNode(target, key);
     producerAccessed(node);
     return res;
   }
@@ -78,7 +77,11 @@ class ReactiveHandler<T extends object> implements ProxyHandler<T> {
       const result = Reflect.set(target, key, value, receiver);
 
       const node = targetMap.get(target)?.get(key);
-      if (node) signalSetFn(node, value);
+      if (node) {
+        node.version++;
+        producerIncrementEpoch();
+        producerNotifyConsumers(node);
+      }
 
       return result;
     }
@@ -88,7 +91,11 @@ class ReactiveHandler<T extends object> implements ProxyHandler<T> {
     const result = Reflect.deleteProperty(target, key);
 
     const node = targetMap.get(target)?.get(key);
-    if (node) signalSetFn(node, undefined);
+    if (node) {
+      node.version++;
+      producerIncrementEpoch();
+      producerNotifyConsumers(node);
+    }
 
     return result;
   }
@@ -118,7 +125,16 @@ type UnwrapSignal<T> =
         ? { [K in keyof T]: UnwrapSignal<T[K]> }
         : T;
 
+const reactiveHandler = /*@__PURE__*/ new ReactiveHandler();
+const reactiveMap = /*@__PURE__*/ new WeakMap<object, any>();
+
 export function reactiveObject<T extends object>(target: T): UnwrapSignal<T>;
 export function reactiveObject(target: object) {
-  return new Proxy(target, new ReactiveHandler());
+  const existingProxy = reactiveMap.get(target);
+  if (existingProxy) {
+    return existingProxy;
+  }
+  const proxy = new Proxy(target, reactiveHandler);
+  reactiveMap.set(target, proxy);
+  return proxy;
 }
