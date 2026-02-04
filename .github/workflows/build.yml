@@ -1,11 +1,9 @@
 name: Pages build
 
-on:
-  workflow_dispatch
+on: workflow_dispatch
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     strategy:
@@ -14,14 +12,41 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
       - name: Install pnpm
         uses: pnpm/action-setup@v4
+
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
           cache: "pnpm"
+
       - name: Install dependencies
         run: pnpm install
+
       - name: Build
-        run: pnpm build
+        run: pnpm build --base-href "/ng-reactive-test/"
+
+      - name: Upload static files as artifact
+        id: deployment
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist/ng-reactive-test/browser
+
+  deploy:
+    needs: build
+
+    permissions:
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4 # or specific "vX.X.X" version tag for this action
