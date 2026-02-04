@@ -1,59 +1,57 @@
-# NgReactiveTest
+# Angular Reactive test
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 21.1.2.
+This is a test for creating a version of Vue's [`reactive`](https://vuejs.org/guide/essentials/reactivity-fundamentals.html#reactive) in Angular's [Signal](https://angular.dev/guide/signals) API.
 
-## Development server
+This is purely for fun. I know some people think each framework should create their own reactivity system that is solely catered to themselves, but that doesn't mean we can't trade concepts and ideas.
 
-To start a local development server, run:
+## What works
 
-```bash
-ng serve
+The file `src/app/utils/reactive.ts` has an export called `reactiveObject()` that acts the same as Vue's reactive:
+
+```ts
+export class MyComponent {
+  data = reactiveObject({
+    count: 10,
+  });
+  countX2 = computed(() => this.data.count * 2); // 20
+}
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+Any signals are unwrapped:
 
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
-```bash
-ng generate component component-name
+```ts
+export class MyComponent {
+  data = reactiveObject({
+    count: signal(10),
+  });
+  countX2 = computed(() => this.data.count * 2); // 20
+}
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+Deep reactivity is supported:
 
-```bash
-ng generate --help
+```ts
+export class MyComponent {
+  data = reactiveObject({
+    innerObject: {
+      count: 10,
+    },
+  });
+  countX2 = computed(() => this.data.innerObject.count * 2); // 20
+}
 ```
 
-## Building
+## What doesn't work
 
-To build the project run:
-
-```bash
-ng build
-```
-
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
-
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+- Other data types are not supported:
+  - Arrays
+  - Maps
+  - Sets
+- Shallow reactive.
+- Unwrapped computed are not marked as `readonly` in TypeScript.
+- Angular's `isReactive` doesn't see object properties as reactive:
+  ```ts
+  isReactive(this.data); // false
+  isReactive(this.data.count); // false
+  ```
+- Angular debugger doesn't represent the object cleanly.
